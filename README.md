@@ -38,33 +38,61 @@ system, which combines these indicators to produce a single score, denoted by **
 The strategy employs the following technical indicators with their respective time periods:
 
 - **Simple Moving Average (SMA)**: with a time period of 10. It is the unweighted mean of the previous `n` data points.
-  ![SMA](https://latex.codecogs.com/svg.image?{SMA}(t,n)=\frac{1}{n}\sum_{i=0}^{n-1}\text{close}(t-i))
-- **Rate of Change (ROC)**: With a time period of 2. It measures the percentage change in price between the current
+  
+![SMA](https://latex.codecogs.com/svg.image?{SMA}(t,n)=\frac{1}{n}\sum_{i=0}^{n-1}\text{close}(t-i))
+
+
+-**Rate of Change (ROC)**: With a time period of 2. It measures the percentage change in price between the current
   price and the price `n` periods ago.
-  ![ROC](https://latex.codecogs.com/svg.image?{ROC}(t,n)=\frac{\text{close}(t)-\text{close}(t-n)}{\text{close}(t-n))
+  
+
+![ROC](https://latex.codecogs.com/svg.image?{ROC}(t,n)=\frac{\text{close}(t)-\text{close}(t-n)}{\text{close}(t-n))
 - **Moving Average Convergence Divergence (MACD)**: Consists of the MACD line, signal line, and the histogram. The MACD
   line is calculated with a slow period of 12 and a fast period of 26.
-  ![MACD](https://latex.codecogs.com/svg.image?\text{MACD}(t)=\text{EMA}_{\text{fast}}(t)-\text{EMA}_{\text{slow}}(t))
-- **Momentum (MOM)**:With a time period of 4. It measures the rate of rise or fall in prices.
+
+![MACD](https://latex.codecogs.com/svg.image?\text{MACD}(t)=\text{EMA}_{\text{fast}}(t)-\text{EMA}_{\text{slow}}(t))
+
+
+-**Momentum (MOM)**:With a time period of 4. It measures the rate of rise or fall in prices.
   ![MOM](https://latex.codecogs.com/svg.image?{MOM}(t,n)=\text{close}(t)-\text{close}(t-n))
+
 - **Relative Strength Index (RSI)**:With a time period of 10. It measures the magnitude of recent price changes to
   evaluate overbought or oversold conditions in the price of a stock or other asset.
-  ![RSI](https://latex.codecogs.com/svg.image?{RSI}(t,n)=100-\frac{100}{1+\frac{\text{avgGain}(t,n)}{\text{avgLoss}(t,n)}})
+
+
+![RSI](https://latex.codecogs.com/svg.image?{RSI}(t,n)=100-\frac{100}{1+\frac{\text{avgGain}(t,n)}{\text{avgLoss}(t,n)}})
+
+
 - **Bollinger Bands (BB)**: These include the upper band, middle band, and the lower band. They are calculated with a
   time period of 20. It is used to determine the volatility of the price.
+
+
   ![BB](https://latex.codecogs.com/svg.image?\text{upperBand}(t)=\text{SMA}(t,20)+2\times\text{rollingStd}(t,20))
   ![BB](https://latex.codecogs.com/svg.image?\text{middleBand}(t)=\text{SMA}(t,20))
   ![BB](https://latex.codecogs.com/svg.image?\text{lowerBand}(t)=\text{SMA}(t,20)-2\times\text{rollingStd}(t,20))
+
+
 - **Commodity Channel Index (CCI)**: With a time period of 20. It measures the difference between the current price and
   the average price over a given time period.
+
+
   ![CCI](https://latex.codecogs.com/svg.image?\text{CCI}(t,n)=\frac{\text{MTP}(t)-\text{SMA&space;of&space;MTP}(t,n)}{0.015\times\text{mean&space;deviation&space;of&space;MTP&space;from&space;its&space;SMA&space;over}n\text{periods}})
+
+
 - **Stochastic Oscillator**: The 'slowk' line is used. It is calculated with a time period of 14.
+
   ![Stochastic Oscillator](https://latex.codecogs.com/svg.image?\text{slowk}(t)=\frac{\text{close}(t)-\text{low}(t,n)}{\text{high}(t,n)-\text{low}(t,n)})
+
 - **Average True Range (ATR)**: With a time period of 14. It measures the volatility of a stock or other "`security`".
+
   ![ATR](https://latex.codecogs.com/svg.image?\text{ATR}(t,n)=\frac{\text{ATR}(t-1,n)\times(n-1)&plus;\text{TR}(t)}{n})
+
 - **On-Balance Volume (OBV)**: With a time period of 10. It measures the positive and negative flow of volume in a
   "`security`" relative to its price over time.
-![OBV](https://latex.codecogs.com/svg.image?\text{OBV}(t)=\text{OBV}(t-1)&plus;\begin{cases}\text{volume}(t)&\text{if}\text{close}(t)>\text{close}(t-1)\\-\text{volume}(t)&\text{if}\text{close}(t)<\text{close}(t-1)\\0&\text{if}\text{close}(t)=\text{close}(t-1)\end{cases})
+
+  ![OBV](https://latex.codecogs.com/svg.image?\text{OBV}(t)=\text{OBV}(t-1)&plus;\begin{cases}\text{volume}(t)&\text{if}\text{close}(t)>\text{close}(t-1)\\-\text{volume}(t)&\text{if}\text{close}(t)<\text{close}(t-1)\\0&\text{if}\text{close}(t)=\text{close}(t-1)\end{cases})
+
+
 ## Formula Breakdown
 
 1. **Normalization of Indicators**: Each indicator is normalized using the Z-score formula:
