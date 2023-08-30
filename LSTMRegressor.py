@@ -17,11 +17,24 @@ from tensorflow_addons.optimizers import AdamW
 
 from freqtrade.freqai.base_models.BaseRegressionModel import BaseRegressionModel
 from freqtrade.freqai.data_kitchen import FreqaiDataKitchen
+from TimeseriesGenerator import TimeseriesGenerator
 
 logger = logging.getLogger(__name__)
 
 
 class LSTMRegressor(BaseRegressionModel):
+    """
+        LSTM Regressor model class for time series prediction.
+
+        Attributes:
+            num_lstm_layers (int): Number of LSTM layers.
+            epochs (int): Number of training epochs.
+            batch_size (int): Batch size for training.
+            learning_rate (float): Learning rate for optimizer.
+            dropout_rate (float): Dropout rate for LSTM layers.
+            CONV_WIDTH (int): Number of time steps to use as input features.
+            model (keras.Model): The LSTM model.
+    """
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -54,35 +67,65 @@ class LSTMRegressor(BaseRegressionModel):
 
         self.num_lstm_layers = config.get('num_lstm_layers', 3)
         self.epochs = config.get('epochs', 100)
-        self.batch_size = config.get('batch_size', 64)
-        self.learning_rate: float = config.get("learning_rate", 0.0001)
+        self.batch_size = config.get('batch_size', 32)
+        self.learning_rate: float = config.get("learning_rate", 0.00015)
         self.dropout_rate = config.get("dropout_rate", 0.3)
+        self.CONV_WIDTH = config.get("conv_width", 2)
 
     def fit(self, data_dictionary: Dict, dk: FreqaiDataKitchen, **kwargs) -> Any:
+        """
+         Fits the model on the given training data.
 
+         Args:
+             data_dictionary (Dict): Dictionary containing the training and test data.
+             dk (FreqaiDataKitchen): Data kitchen object for data preprocessing.
+             **kwargs: Arbitrary keyword arguments.
+
+         Returns:
+             keras.Model: The fitted model.
+         """
+
+        # Get number of features and outputs
         n_features = data_dictionary["train_features"].shape[1]
         n_output = data_dictionary["train_labels"].shape[1]
 
-        # Reshape input to be 3D [samples, timestamps, features]
-        train_X = data_dictionary["train_features"].values.reshape(
-            data_dictionary["train_features"].shape[0], 1, n_features)
-        train_y = data_dictionary["train_labels"].values
+        # Create TimeseriesGenerator objects for the training and testing data
+        input_width = self.CONV_WIDTH
+        label_width = 1
+        shift = 1
+        batch_size = self.batch_size
 
+        train_generator = TimeseriesGenerator(
+            input_width=input_width,
+            label_width=label_width,
+            shift=shift,
+            train_df=data_dictionary["train_features"],
+            train_labels=data_dictionary["train_labels"],
+            batch_size=batch_size,
+        )
+
+        val_generator = TimeseriesGenerator(
+            input_width=input_width,
+            label_width=label_width,
+            shift=shift,
+            val_df=data_dictionary["test_features"],
+            val_labels=data_dictionary["test_labels"],
+            batch_size=batch_size,
+        )
+
+        train_data = train_generator.train
         if self.freqai_info.get('data_split_parameters', {}).get('test_size', 0.1) != 0:
-            test_X = data_dictionary["test_features"].values.reshape(
-                data_dictionary["test_features"].shape[0], 1, n_features)
-            test_y = data_dictionary["test_labels"].values
+            val_data = val_generator.val
         else:
-            test_X, test_y = None, None
+            val_data = None
 
         # Designing the model
         d_model = n_features
         num_lstm_layers = self.num_lstm_layers
         epochs = self.epochs
-        batch_size = self.batch_size
         learning_rate = self.learning_rate
         dropout_rate = self.dropout_rate
-        input_layer = Input(shape=(train_X.shape[1], train_X.shape[2]))
+        input_layer = Input(shape=(input_width, n_features))
         x = input_layer
 
         # Add more LSTM layers with attention
@@ -113,15 +156,14 @@ class LSTMRegressor(BaseRegressionModel):
         optimizer = AdamW(learning_rate=learning_rate, weight_decay=0.001)
         model.compile(loss='mae', optimizer=optimizer)
 
-        # Learning rate scheduler
+        # callbacks
         lr_scheduler = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=20, min_lr=0.00001)
         tensorboard_callback = TensorBoard(log_dir=dk.data_path, histogram_freq=1)
-
+        early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
         # Fit network
-        model.fit(train_X, train_y, epochs=epochs, batch_size=batch_size,
-                  validation_data=(test_X, test_y), verbose=2, shuffle=False,
-                  callbacks=[EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
-                             lr_scheduler, tensorboard_callback])
+        model.fit(train_data, epochs=epochs, batch_size=batch_size,
+                  validation_data=val_data, verbose=1, shuffle=False,
+                  callbacks=[early_stopping, lr_scheduler, tensorboard_callback])
 
         return model
 
@@ -145,8 +187,22 @@ class LSTMRegressor(BaseRegressionModel):
         dk.data_dictionary["prediction_features"], outliers, _ = dk.feature_pipeline.transform(
             dk.data_dictionary["prediction_features"], outlier_check=True)
 
-        input_data = np.expand_dims(dk.data_dictionary["prediction_features"], axis=1)
-        predictions = self.model.predict(input_data)
+        input_width = self.CONV_WIDTH
+        label_width = 0
+        shift = 0
+        batch_size = 1
+
+        inference_generator = TimeseriesGenerator(
+            input_width=input_width,
+            label_width=label_width,
+            shift=shift,
+            test_df=dk.data_dictionary["prediction_features"],
+            batch_size=batch_size,
+        )
+
+        inference_data = inference_generator.inference
+
+        predictions = self.model.predict(inference_data)
         if self.CONV_WIDTH == 1:
             predictions = np.reshape(predictions, (-1, len(dk.label_list)))
 
@@ -159,4 +215,4 @@ class LSTMRegressor(BaseRegressionModel):
             dk.DI_values = np.zeros(outliers.shape[0])
         dk.do_predict = outliers
 
-        return pred_df, dk.do_predict
+        return (pred_df, dk.do_predict)
