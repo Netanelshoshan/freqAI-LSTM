@@ -33,6 +33,87 @@ The strategy is built upon various technical indicators to determine the most op
 strategy is a scoring
 system, which combines these indicators to produce a single score, denoted by **`T`**, for each time point in the data.
 
+
+```python
+  # Step 0: Calculate new indicators
+  df['ma'] = ta.SMA(df, timeperiod=10)
+  df['roc'] = ta.ROC(df, timeperiod=2)
+  df['macd'], df['macdsignal'], df['macdhist'] = ta.MACD(df['close'], slowperiod=12,
+                                                        fastperiod=26)
+  df['momentum'] = ta.MOM(df, timeperiod=4)
+  df['rsi'] = ta.RSI(df, timeperiod=10)
+  bollinger = ta.BBANDS(df, timeperiod=20)
+  df['bb_upperband'] = bollinger['upperband']
+  df['bb_middleband'] = bollinger['middleband']
+  df['bb_lowerband'] = bollinger['lowerband']
+  df['cci'] = ta.CCI(df, timeperiod=20)
+  df['stoch'] = ta.STOCH(df)['slowk']
+  df['atr'] = ta.ATR(df, timeperiod=14)
+  df['obv'] = ta.OBV(df)
+  
+  # Step 1: Normalize Indicators
+  df['normalized_stoch'] = (df['stoch'] - df['stoch'].rolling(window=14).mean()) / df[
+      'stoch'].rolling(window=14).std()
+  df['normalized_atr'] = (df['atr'] - df['atr'].rolling(window=14).mean()) / df[
+      'atr'].rolling(window=14).std()
+  df['normalized_obv'] = (df['obv'] - df['obv'].rolling(window=14).mean()) / df[
+      'obv'].rolling(window=14).std()
+  df['normalized_ma'] = (df['close'] - df['close'].rolling(window=10).mean()) / df[
+      'close'].rolling(window=10).std()
+  df['normalized_macd'] = (df['macd'] - df['macd'].rolling(window=26).mean()) / df[
+      'macd'].rolling(window=26).std()
+  df['normalized_roc'] = (df['roc'] - df['roc'].rolling(window=2).mean()) / df[
+      'roc'].rolling(window=2).std()
+  df['normalized_momentum'] = (df['momentum'] - df['momentum'].rolling(window=4).mean()) / \
+                              df['momentum'].rolling(window=4).std()
+  df['normalized_rsi'] = (df['rsi'] - df['rsi'].rolling(window=10).mean()) / df[
+      'rsi'].rolling(window=10).std()
+  df['normalized_bb_width'] = (df['bb_upperband'] - df['bb_lowerband']).rolling(
+      window=20).mean() / (df['bb_upperband'] - df['bb_lowerband']).rolling(window=20).std()
+  df['normalized_cci'] = (df['cci'] - df['cci'].rolling(window=20).mean()) / df[
+      'cci'].rolling(window=20).std()
+  
+  # Step 1.5: Calculate momentum weight
+  # Dynamic Weights (The following is an example. Increase the weight of momentum in a strong trend)
+  trend_strength = abs(df['ma'] - df['close'])
+  strong_trend_threshold = trend_strength.rolling(window=14).mean() + 1.5 * trend_strength.rolling(
+      window=14).std()
+  is_strong_trend = trend_strength > strong_trend_threshold
+  df['w_momentum'] = np.where(is_strong_trend, self.rsi_w.value * 1.5, self.rsi_w.value)
+  
+  # Step 2: Calculate Target Score S
+  # Each weight should be between 0 and 1. The sum of all weights should be 1. 
+  # The higher the weight, the more important the indicator.
+  w = [self.ma_w.value, self.macd_w.value, self.roc_w.value, self.rsi_w.value, self.bb_w.value, self.cci_w.value,
+       self.obv_w.value, self.atr_w.value, self.stoch_w.value]
+  df['S'] = w[0] * df['normalized_ma'] + w[1] * df['normalized_macd'] + w[2] * df[
+      'normalized_roc'] + w[3] * df['normalized_rsi'] + w[4] * \
+            df['normalized_bb_width'] + w[5] * df['normalized_cci'] + df['w_momentum'] * df['normalized_momentum'] + self.stoch_w.value * df[
+      'normalized_stoch'] + self.atr_w.value * df['normalized_atr'] + self.obv_w.value * df[
+                 'normalized_obv']
+  
+  # Step 3: Calculate Market Regime Filter R
+  df['R'] = 0
+  df.loc[(df['close'] > df['bb_middleband']) & (
+          df['close'] > df['bb_upperband']), 'R'] = 1
+  df.loc[(df['close'] < df['bb_middleband']) & (
+          df['close'] < df['bb_lowerband']), 'R'] = -1
+  
+  # Step 3.5: Additional Market Regime Filter based on long-term MA
+  df['ma_100'] = ta.SMA(df, timeperiod=100)
+  df['R2'] = np.where(df['close'] > df['ma_100'], 1, -1)
+  
+  # Step 4: Calculate Volatility Adjustment V
+  bb_width = (df['bb_upperband'] - df['bb_lowerband']) / df['bb_middleband']
+  df['V'] = 1 / bb_width  # assuming V is inversely proportional to BB width
+  
+  # New Volatility Adjustment using ATR
+  df['V2'] = 1 / df['atr']
+  
+  # Step 5: Calculate the target score T
+  df['T'] = df['S'] * df['R'] * df['V'] * df['R2'] * df['V2']
+```
+
 ## Technical Indicators
 
 The strategy employs the following technical indicators with their respective time periods:
