@@ -5,36 +5,27 @@ from typing import Any, Dict, Tuple
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-import scipy as spy
 import tensorflow as tf
 from keras import Model
 from keras.callbacks import EarlyStopping, TensorBoard
 from keras.callbacks import ReduceLROnPlateau
-from keras.layers import Activation, RepeatVector, Permute, Multiply, Add
-from keras.layers import Dense, Input, LSTM, Flatten, TimeDistributed, Dropout
+from keras.layers import BatchNormalization
+from keras.layers import Dense, Input, LSTM, Dropout, Bidirectional, Add, AlphaDropout
+from keras.metrics import RootMeanSquaredError as rmse
+# from keras.optimizers import SGD
 from pandas import DataFrame
-from tensorflow_addons.optimizers import AdamW
+from sklearn.preprocessing import RobustScaler
+from tensorflow_addons.optimizers import AdamW, SGDW
 
 from freqtrade.freqai.base_models.BaseRegressionModel import BaseRegressionModel
 from freqtrade.freqai.data_kitchen import FreqaiDataKitchen
-from TimeseriesGenerator import TimeseriesGenerator
+
+# from BaseRegressionModel import BaseRegressionModel
 
 logger = logging.getLogger(__name__)
 
 
 class LSTMRegressor(BaseRegressionModel):
-    """
-        LSTM Regressor model class for time series prediction.
-
-        Attributes:
-            num_lstm_layers (int): Number of LSTM layers.
-            epochs (int): Number of training epochs.
-            batch_size (int): Batch size for training.
-            learning_rate (float): Learning rate for optimizer.
-            dropout_rate (float): Dropout rate for LSTM layers.
-            CONV_WIDTH (int): Number of time steps to use as input features.
-            model (keras.Model): The LSTM model.
-    """
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -67,102 +58,80 @@ class LSTMRegressor(BaseRegressionModel):
 
         self.num_lstm_layers = config.get('num_lstm_layers', 3)
         self.epochs = config.get('epochs', 100)
-        self.batch_size = config.get('batch_size', 32)
-        self.learning_rate: float = config.get("learning_rate", 0.00015)
+        self.batch_size = config.get('batch_size', 64)
+        self.learning_rate: float = config.get("learning_rate", 0.0001)
         self.dropout_rate = config.get("dropout_rate", 0.3)
-        self.CONV_WIDTH = config.get("conv_width", 2)
+        self.timesteps = config.get("conv_width", 2)
+
+    def create_sequences(self, data, labels, sequence_length):
+        """
+        Reshape data and labels into sequences for LSTM training.
+        """
+        sequence_data = []
+        sequence_labels = []
+
+        for i in range(len(data) - sequence_length):
+            sequence_data.append(data[i:i + sequence_length])
+            sequence_labels.append(labels[i + sequence_length])
+
+        return np.array(sequence_data), np.array(sequence_labels)
 
     def fit(self, data_dictionary: Dict, dk: FreqaiDataKitchen, **kwargs) -> Any:
-        """
-         Fits the model on the given training data.
 
-         Args:
-             data_dictionary (Dict): Dictionary containing the training and test data.
-             dk (FreqaiDataKitchen): Data kitchen object for data preprocessing.
-             **kwargs: Arbitrary keyword arguments.
-
-         Returns:
-             keras.Model: The fitted model.
-         """
-
-        # Get number of features and outputs
         n_features = data_dictionary["train_features"].shape[1]
         n_output = data_dictionary["train_labels"].shape[1]
 
-        # Create TimeseriesGenerator objects for the training and testing data
-        input_width = self.CONV_WIDTH
-        label_width = 1
-        shift = 1
-        batch_size = self.batch_size
+        # Robust Scaling of the features
+        scaler = RobustScaler()
+        train_X = scaler.fit_transform(data_dictionary["train_features"])
+        train_y = data_dictionary["train_labels"].values
 
-        train_generator = TimeseriesGenerator(
-            input_width=input_width,
-            label_width=label_width,
-            shift=shift,
-            train_df=data_dictionary["train_features"],
-            train_labels=data_dictionary["train_labels"],
-            batch_size=batch_size,
-        )
+        # Reshape input to be 3D [samples, timestamps, features] using sequences
+        sequence_length = self.timesteps  # set your desired sequence length
+        train_X, train_y = self.create_sequences(train_X, train_y, sequence_length)
 
-        val_generator = TimeseriesGenerator(
-            input_width=input_width,
-            label_width=label_width,
-            shift=shift,
-            val_df=data_dictionary["test_features"],
-            val_labels=data_dictionary["test_labels"],
-            batch_size=batch_size,
-        )
-
-        train_data = train_generator.train
+        # If a test set exists, transform and reshape it similarly
         if self.freqai_info.get('data_split_parameters', {}).get('test_size', 0.1) != 0:
-            val_data = val_generator.val
+            test_X = scaler.transform(data_dictionary["test_features"])
+            test_y = data_dictionary["test_labels"].values
+            test_X, test_y = self.create_sequences(test_X, test_y, sequence_length)
         else:
-            val_data = None
+            test_X, test_y = None, None
 
         # Designing the model
-        d_model = n_features
-        num_lstm_layers = self.num_lstm_layers
-        epochs = self.epochs
-        learning_rate = self.learning_rate
-        dropout_rate = self.dropout_rate
-        input_layer = Input(shape=(input_width, n_features))
-        x = input_layer
+        # Note: The input shape now takes sequence_length as the first dimension
+        input_layer = Input(shape=(sequence_length, n_features))
+        x = LSTM(100, return_sequences=True, recurrent_regularizer='l2')(
+            input_layer)
+        x = BatchNormalization()(x)
+        x = Dropout(self.dropout_rate)(x)
+        x_res = x  # save for residual connection
+        for _ in range(self.num_lstm_layers - 1):
+            x = LSTM(100, return_sequences=True, recurrent_regularizer='l2')(x)
+            x = BatchNormalization()(x)
+            x = Dropout(self.dropout_rate)(x)
+            x = Add()([x, x_res])  # residual connection
+            x_res = x
+        x = LSTM(100, return_sequences=False, recurrent_regularizer='l2')(x)
+        x = BatchNormalization()(x)
+        x = Dropout(self.dropout_rate)(x)
+        x = Dense(units=36, activation='relu')(x)
+        x = AlphaDropout(0.5)(x)
+        output_layer = Dense(units=n_output)(x)
 
-        # Add more LSTM layers with attention
-        for _ in range(num_lstm_layers):
-            lstm_output = LSTM(d_model, return_sequences=True, dropout=dropout_rate)(x)
-
-            # Add attention mechanism to LSTM hidden states
-            attention = Dense(1, activation='tanh')(lstm_output)
-            attention = Flatten()(attention)
-            attention = Activation('softmax')(attention)
-            attention = RepeatVector(d_model)(attention)
-            attention = Permute([2, 1])(attention)
-            attention_output = Multiply()([lstm_output, attention])
-            x = Add()([lstm_output, attention_output])
-
-        x = TimeDistributed(Dense(d_model, activation='tanh'))(x)
-        x = Dropout(dropout_rate)(x)
-
-        x = Flatten()(x)
-        x = Dense(d_model, activation='relu')(x)
-
-        # Add residual connection
-        x = Add()([x, input_layer])
-        output_layer = Dense(n_output)(x)
         model = Model(inputs=input_layer, outputs=output_layer)
+        optimizer = SGDW(learning_rate=self.learning_rate, momentum=0.9, nesterov=True, clipvalue=0.5,
+                         weight_decay=0.0001)
+        model.compile(optimizer=optimizer, loss='mse', metrics=[rmse()])
 
-        # Optimizer
-        optimizer = AdamW(learning_rate=learning_rate, weight_decay=0.001)
-        model.compile(loss='mae', optimizer=optimizer)
-
-        # callbacks
-        lr_scheduler = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=20, min_lr=0.00001)
+        # Learning rate scheduler
+        lr_scheduler = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=0.00001)
         tensorboard_callback = TensorBoard(log_dir=dk.data_path, histogram_freq=1)
         early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+
         # Fit network
-        model.fit(train_data, epochs=epochs, batch_size=batch_size,
-                  validation_data=val_data, verbose=1, shuffle=False,
+        model.fit(train_X, train_y, epochs=self.epochs, batch_size=self.batch_size,
+                  validation_data=(test_X, test_y), verbose=2, shuffle=False,
                   callbacks=[early_stopping, lr_scheduler, tensorboard_callback])
 
         return model
@@ -187,32 +156,34 @@ class LSTMRegressor(BaseRegressionModel):
         dk.data_dictionary["prediction_features"], outliers, _ = dk.feature_pipeline.transform(
             dk.data_dictionary["prediction_features"], outlier_check=True)
 
-        input_width = self.CONV_WIDTH
-        label_width = 0
-        shift = 0
-        batch_size = 1
+        # if the user is asking for multiple predictions, slide the window along the tensor
+        sequence_length = self.timesteps
+        num_rows = dk.data_dictionary["prediction_features"].shape[0]
 
-        inference_generator = TimeseriesGenerator(
-            input_width=input_width,
-            label_width=label_width,
-            shift=shift,
-            test_df=dk.data_dictionary["prediction_features"],
-            batch_size=batch_size,
-        )
+        # create an empty predictions list
+        predictions = []
 
-        inference_data = inference_generator.inference
+        for i in range(num_rows - sequence_length):
+            # take a window of data
+            input_data = np.array([dk.data_dictionary["prediction_features"][i:i + sequence_length]])
 
-        predictions = self.model.predict(inference_data)
-        if self.CONV_WIDTH == 1:
-            predictions = np.reshape(predictions, (-1, len(dk.label_list)))
+            # predict for the current window
+            pred = self.model.predict(input_data)
+            predictions.append(pred)
 
+        # concatenate predictions to form a single array
+        predictions = np.concatenate(predictions, axis=0)
         pred_df = DataFrame(predictions, columns=dk.label_list)
-
         pred_df, _, _ = dk.label_pipeline.inverse_transform(pred_df)
+
         if dk.feature_pipeline["di"]:
             dk.DI_values = dk.feature_pipeline["di"].di_values
         else:
             dk.DI_values = np.zeros(outliers.shape[0])
         dk.do_predict = outliers
+
+        # Adjust for the window size by adding rows of zeros at the beginning
+        zeros_df = DataFrame(np.zeros((sequence_length, len(pred_df.columns))), columns=pred_df.columns)
+        pred_df = pd.concat([zeros_df, pred_df], axis=0).reset_index(drop=True)
 
         return (pred_df, dk.do_predict)
