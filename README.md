@@ -47,7 +47,7 @@ def _validate_freqai_include_timeframes()
   if freqai_enabled:
         main_tf = conf.get('timeframe', '5m') -> change to '1h' or the min timeframe of your choosing
  ```
-3. Run it. 
+4. Run it. 
 ```shell
 freqtrade backtesting  -c config-example.json --breakdown day week month --timerange 20240301-20240401```
 ```
