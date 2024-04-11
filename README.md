@@ -22,7 +22,7 @@ The `LSTMRegressor` is a deep learning model specifically tailored for predictin
 
 1. Ensure you have tensorflow installed.
 2. Make sure to set "model_save_type" in your config.json to "keras". See config-sample.json for an example.
-3. In freqai/data_drawer.py and freqa_interface.py you should add the following code:
+3. In freqtrade/freqai/data_drawer.py , freqtrade/freqai/freqai_interface.py, and freqtrade/configuration/config_validation.py you should add the following code:
 ```python
 # freqtrade/freqai/data_drawer.py
 # save_model()
@@ -39,6 +39,13 @@ elif self.model_type == 'keras':
 # freqtrade/freqai/freqai_interface.py : model_exists() add the following:
 elif self.dd.model_type == "keras":
     file_type = ".keras"
+
+#freqtrade/configuration/config_validation.py
+...
+def _validate_freqai_include_timeframes()
+  ...
+  if freqai_enabled:
+        main_tf = conf.get('timeframe', '5m') -> change to '1h' or the min timeframe of your choosing
  ```
 3. Run it. 
 ```shell
