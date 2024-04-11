@@ -1,0 +1,115 @@
+{
+  "trading_mode": "futures",
+  "margin_mode": "isolated",
+  "max_open_trades": -1,
+  "stake_currency": "USDT",
+  "stake_amount": 2600,
+  "tradable_balance_ratio": 0.99,
+  "fiat_display_currency": "USD",
+  "dry_run": true,
+  "strategy": "ExampleLSTMStrategy",
+  "freqaimodel": "LSTMRegressor",
+  "dataformat_ohlcv": "json",
+  "dataformat_trades": "jsongz",
+  "cancel_open_orders_on_exit": false,
+  "dry_run_wallet": 11000,
+  "unfilledtimeout": {
+    "entry": 10,
+    "exit": 30
+  },
+  "entry_pricing": {
+    "price_side": "same",
+    "use_order_book": true,
+    "order_book_top": 1,
+    "price_last_balance": 0.0,
+    "check_depth_of_market": {
+      "enabled": false,
+      "bids_to_ask_delta": 1
+    }
+  },
+  "exit_pricing": {
+    "price_side": "other",
+    "use_order_book": true,
+    "order_book_top": 1
+  },
+  "exchange": {
+    "name": "binance",
+    "sandbox": false,
+    "key": "<API_KEY>",
+    "secret": "<API_SECRET>",
+    "ccxt_config": {
+      "enableRateLimit": true,
+      "rateLimit": 50
+    },
+    "ccxt_async_config": {
+      "enableRateLimit": true,
+      "rateLimit": 50
+    },
+    "pair_whitelist": [
+      "BTC/USDT:USDT",
+      "SOL/USDT:USDT",
+      "OCEAN/USDT:USDT",
+      "ETC/USDT:USDT",
+      "ETH/USDT:USDT"
+    ],
+    "pair_blacklist": []
+  },
+  "pairlists": [
+    {
+      "method": "StaticPairList"
+    },
+    {
+      "method": "ShuffleFilter",
+      "shuffle_frequency": "candle",
+      "seed": 42
+    }
+  ],
+  "freqai": {
+    "enabled": true,
+    "keras": true,
+    "model_save_type": "keras", // or "pickle"
+    "identifier": "tf_dryrun_0.0.1",
+    "optuna_hyperopt": false,
+    "backtest_period_days": 120,
+    "train_period_days": 360,
+    "conv_width": 2,
+    "expiration_hours": 4,
+    "purge_old_models": 5,
+    "save_backtest_models": true,
+    "track_performance": true,
+    "auto_training_window": true,
+    "write_metrics_to_disk": true,
+    "activate_tensorboard": false,
+    "feature_parameters": {
+      "include_corr_pairlist": [
+        "BTC/USDT:USDT"
+      ],
+      "include_timeframes": [
+        "1h",
+        "4h"
+      ],
+      "label_period_candles": 12,
+      "DI_threshold": 1,
+      "weight_factor": 0.65,
+      "include_shifted_candles": 5,
+      "indicator_periods_candles": [
+        10
+      ],
+      "noise_standard_deviation": 0.1,
+      "buffer_train_data_candles": 20
+    },
+    "data_split_parameters": {
+      "test_size": 0.2,
+      "random_state": 42,
+      "shuffle": false
+    },
+    "model_training_parameters": {
+      "num_lstm_layers": 3,
+      "epochs": 45,
+      "batch_size": 32,
+      "learning_rate": 0.001,
+      "dropout_rate": 0.3
+    }
+  }
+ // telegram and api..
+}

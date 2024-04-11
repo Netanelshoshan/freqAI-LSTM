@@ -12,15 +12,12 @@ from keras.callbacks import ReduceLROnPlateau
 from keras.layers import BatchNormalization
 from keras.layers import Dense, Input, LSTM, Dropout, Bidirectional, Add, AlphaDropout
 from keras.metrics import RootMeanSquaredError as rmse
-# from keras.optimizers import SGD
+from keras.optimizers import SGD
 from pandas import DataFrame
 from sklearn.preprocessing import RobustScaler
-from tensorflow_addons.optimizers import AdamW, SGDW
-
 from freqtrade.freqai.base_models.BaseRegressionModel import BaseRegressionModel
 from freqtrade.freqai.data_kitchen import FreqaiDataKitchen
 
-# from BaseRegressionModel import BaseRegressionModel
 
 logger = logging.getLogger(__name__)
 
@@ -120,8 +117,8 @@ class LSTMRegressor(BaseRegressionModel):
         output_layer = Dense(units=n_output)(x)
 
         model = Model(inputs=input_layer, outputs=output_layer)
-        optimizer = SGDW(learning_rate=self.learning_rate, momentum=0.9, nesterov=True, clipvalue=0.5,
-                         weight_decay=0.0001)
+        optimizer = SGD(learning_rate=self.learning_rate, momentum=0.9, nesterov=True, clipvalue=0.5,
+                        weight_decay=0.0001)
         model.compile(optimizer=optimizer, loss='mse', metrics=[rmse()])
 
         # Learning rate scheduler
@@ -136,43 +133,26 @@ class LSTMRegressor(BaseRegressionModel):
 
         return model
 
-    def predict(
-            self, unfiltered_df: DataFrame, dk: FreqaiDataKitchen, **kwargs
-    ) -> Tuple[DataFrame, npt.NDArray[np.int_]]:
-        """
-        Generate predictions using the fitted TransformerRegressor model.
-
-        :param unfiltered_df: Full dataframe for the current backtest period.
-        :param dk: FreqaiDataKitchen object for the current coin/model.
-        :return: Tuple containing a DataFrame of predictions and a numpy array of indicators (1s and 0s) marking
-                 places where data was removed (NaNs) or where model was uncertain (PCA and DI index).
-        """
-
+    def predict(self, unfiltered_df: DataFrame, dk: FreqaiDataKitchen, **kwargs) -> Tuple[
+        DataFrame, npt.NDArray[np.int_]]:
         dk.find_features(unfiltered_df)
         dk.data_dictionary["prediction_features"], _ = dk.filter_features(
             unfiltered_df, dk.training_features_list, training_filter=False
         )
-
         dk.data_dictionary["prediction_features"], outliers, _ = dk.feature_pipeline.transform(
-            dk.data_dictionary["prediction_features"], outlier_check=True)
+            dk.data_dictionary["prediction_features"], outlier_check=True
+        )
 
-        # if the user is asking for multiple predictions, slide the window along the tensor
         sequence_length = self.timesteps
         num_rows = dk.data_dictionary["prediction_features"].shape[0]
 
-        # create an empty predictions list
-        predictions = []
+        # Create input tensor with all windows
+        input_data = np.array([dk.data_dictionary["prediction_features"][i:i + sequence_length]
+                               for i in range(num_rows - sequence_length)])
 
-        for i in range(num_rows - sequence_length):
-            # take a window of data
-            input_data = np.array([dk.data_dictionary["prediction_features"][i:i + sequence_length]])
+        # Make predictions in a single batch
+        predictions = self.model.predict(input_data)
 
-            # predict for the current window
-            pred = self.model.predict(input_data)
-            predictions.append(pred)
-
-        # concatenate predictions to form a single array
-        predictions = np.concatenate(predictions, axis=0)
         pred_df = DataFrame(predictions, columns=dk.label_list)
         pred_df, _, _ = dk.label_pipeline.inverse_transform(pred_df)
 
@@ -182,8 +162,8 @@ class LSTMRegressor(BaseRegressionModel):
             dk.DI_values = np.zeros(outliers.shape[0])
         dk.do_predict = outliers
 
-        # Adjust for the window size by adding rows of zeros at the beginning
-        zeros_df = DataFrame(np.zeros((sequence_length, len(pred_df.columns))), columns=pred_df.columns)
-        pred_df = pd.concat([zeros_df, pred_df], axis=0).reset_index(drop=True)
+        # Add rows of zeros at the beginning to adjust for the window size
+        pred_df = pd.concat([pd.DataFrame(np.zeros((sequence_length, len(pred_df.columns))), columns=pred_df.columns),
+                             pred_df], axis=0).reset_index(drop=True)
 
         return (pred_df, dk.do_predict)
