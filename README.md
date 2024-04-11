@@ -255,7 +255,7 @@ One of the challenges in using the LSTMRegressor model is to ensure that the mod
 
 Another challenge is to avoid trading on noise. This can be addressed by using a threshold to filter out the noise or by employing dissimilarity measures.
 
-With the right hyperparameters and the slow hardware (M1 Max / RTX 3070), the model achieved an accuracy of 63% on a small dataset of 360 days. The model's performance can be further improved by:
+With the right hyperparameters and the slow hardware (M1 Max / RTX 3070), the model achieved an accuracy of 70.4% on a small dataset of 360 days. The model's performance can be further improved by:
 
 - Tuning the hyperparameters and strategy parameters (thresholds, config params) using techniques like `optuna`, `keras-tuner`, grid search, or random search.
 - Using a larger dataset for training.
