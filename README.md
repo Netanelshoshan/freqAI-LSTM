@@ -25,12 +25,12 @@ The `LSTMRegressor` is a deep learning model specifically tailored for predictin
 3. In freqtrade/freqai/data_drawer.py , freqtrade/freqai/freqai_interface.py, and freqtrade/configuration/config_validation.py you should add the following code:
 ```python
 # freqtrade/freqai/data_drawer.py
-# save_model()
+# save_data()
 ...
 elif self.model_type == 'keras':
     model.save(save_path / f"{dk.model_filename}_model.keras")
 
-# load_model()
+# load_data()
 ...
 elif self.model_type == 'keras':
     from tensorflow.keras.models import load_model
