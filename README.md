@@ -246,7 +246,7 @@ The strategy employs the following technical indicators with their respective ti
 
 - **On-Balance Volume (OBV)**: With a time period of 10. It measures the positive and negative flow of volume in a "`security`" relative to its price over time.
 
-  ![OBV](https://latex.codecogs.com/svg.image?\text{OBV}(t)=\text{OBV}(t-1)&plus;\text{volume}(t)\times\text{sign}(\text{close}(t)-\text{close}(t-1))
+  ![OBV](https://latex.codecogs.com/svg.image?\text{OBV}(t)=\text{OBV}(t-1)&plus;\text{volume}(t)\times\text{sign}(\text{close}(t)-\text{close}(t-1)))
 
 
 ## Challenges and Future Improvements
