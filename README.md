@@ -46,8 +46,14 @@ def _validate_freqai_include_timeframes()
   ...
   if freqai_enabled:
         main_tf = conf.get('timeframe', '5m') -> change to '1h' or the min timeframe of your choosing
- ```
-4. Run it. 
+```
+4. Download json data
+```
+freqtrade download-data --exchange binance --days 450 -t 4h -p ETH/USDT:USDT ETC/USDT:USDT SOL/USDT:USDT OCEAN/USDT:USDT  BTC/USDT:USDT  --data-format-ohlcv json --erase --trading-mode futures
+
+freqtrade download-data --exchange binance --days 450 -t 1h -p ETH/USDT:USDT ETC/USDT:USDT SOL/USDT:USDT OCEAN/USDT:USDT  BTC/USDT:USDT  --data-format-ohlcv json --erase --trading-mode futures
+```
+5. Run it. 
 ```shell
 freqtrade backtesting  -c config-example.json --breakdown day week month --timerange 20240301-20240401```
 ```
