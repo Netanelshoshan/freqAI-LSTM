@@ -1,4 +1,4 @@
-# LSTM Regressor for Crypto Prediction
+# A Trading Model Utilizing a Dynamic Weighting and Aggregate Scoring System with LSTM Networks
 
 A [regression model](https://github.com/Netanelshoshan/freqAI-LSTM)
 for  [FreqAI](https://www.freqtrade.io/en/stable/freqai/) module
@@ -6,7 +6,11 @@ from [freqtrade](https://github.com/freqtrade/freqtrade), a crypto trading platf
 
 ⚠️ **Since problems have started to arise with the latest versions of Freqtrade (> 2024.02), I will be porting this model, and potentially other models, to PyTorch. PyTorch has better GPU support across platforms and allows for faster development since it eliminates the need to edit the core of freqAI (maybe just increasing the timeframe limit from 5 minutes to a larger one).** ⚠️
 
-Please check [#4](/../../issues/4) for updates and progress.   
+
+💡  **Feel free to check out the progress of the new PyTorch model in the pull request [#5](/../../pull/5). So far It has shown >90% acc on a 1/3 of the dataset used by tensorflow. Meaning 120 days.**
+
+**I encourage you to give it a spin, all you need to do is to copy and paste the files. Use the same config.json, add the torch config I added in my pull request and use the same example strategy. If you tackle any bugs of problems, feel free to reach out. 🙂 (Avoid using the quickstart guide below - which is for the TensorFlow model.)** 💡
+
 
 ## Overview
 
