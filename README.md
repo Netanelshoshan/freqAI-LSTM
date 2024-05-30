@@ -4,6 +4,10 @@ A [regression model](https://github.com/Netanelshoshan/freqAI-LSTM)
 for  [FreqAI](https://www.freqtrade.io/en/stable/freqai/) module
 from [freqtrade](https://github.com/freqtrade/freqtrade), a crypto trading platform.
 
+⚠️ **Since problems have started to arise with the latest versions of Freqtrade (> 2024.02), I will be porting this model, and potentially other models, to PyTorch. PyTorch has better GPU support across platforms and allows for faster development since it eliminates the need to edit the core of freqAI (maybe just increasing the timeframe limit from 5 minutes to a larger one).** ⚠️
+
+Please check [#4](/../../issues/4) for updates and progress.   
+
 ## Overview
 
 The `LSTMRegressor` is a deep learning model specifically tailored for predicting cryptocurrency prices and trends. It leverages the power of Long Short-Term Memory (LSTM) cells, a type of recurrent neural network (RNN), to understand sequential data like time series.
