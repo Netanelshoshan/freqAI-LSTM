@@ -4,6 +4,7 @@
 A regression model and trading strategy for  [FreqAI](https://www.freqtrade.io/en/stable/freqai/) module
 from [freqtrade](https://github.com/freqtrade/freqtrade), a crypto trading bot.
 
+
 ⚠️ **Since problems have started to arise with the latest versions of Freqtrade (> 2024.02), I will be porting this
 model, and potentially other models, to PyTorch. PyTorch has better GPU support across platforms and allows for faster
 development since it eliminates the need to edit the core of freqAI (maybe just increasing the timeframe limit from 5
