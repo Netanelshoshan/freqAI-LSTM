@@ -64,19 +64,19 @@ The model's hyperparameters, such as the number of LSTM layers, hidden dimension
 Here's an example of how the model_training_parameters can be set up:
 
 ```json
-    "model_training_parameters": {
-"learning_rate": 3e-3,
-"trainer_kwargs": {
-"n_steps": null,
-"batch_size": 32,
-"n_epochs": 10,
-},
-"model_kwargs": {
-"num_lstm_layers": 3,
-"hidden_dim": 128,
-"dropout_percent": 0.4,
-"window_size": 5
-}
+"model_training_parameters": {
+        "learning_rate": 3e-3,
+        "trainer_kwargs": {
+        "n_steps": null,
+        "batch_size": 32,
+        "n_epochs": 10,
+        },
+        "model_kwargs": {
+        "num_lstm_layers": 3,
+        "hidden_dim": 128,
+        "dropout_percent": 0.4,
+        "window_size": 5
+    }
 }
 ```
 Let's go through each of these parameters:
