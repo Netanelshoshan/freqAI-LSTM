@@ -33,7 +33,7 @@ cp config-example.json <freqtrade dir>/user_data/config.json
 cp ExampleLSTMStrategy.py <freqtrade dir>/user_data/strategies/
 ```
 3. Download the data
-```shel
+```shell
 freqtrade download-data -c user_data/config-torch.json --timerange 20230101-20240529 --timeframe 15m 30m 1h 2h 4h 8h 1d --erase
 ```
 4. Edit "freqtrade/configuration/config_validation.py"
@@ -44,7 +44,12 @@ def _validate_freqai_include_timeframes()
     if freqai_enabled:
         main_tf = conf.get('timeframe', '5m') -> change to '1h' or the **min** timeframe of your choosing
 ```
-5. Run the backtest
+5. Make sure your package is edible after the the changes
+```shell
+pip install -e .
+```
+
+7. Run the backtest
 ```shell
 freqtrade backtesting -c user_data/config-torch.json --breakdown day week month --timerange 20240301-20240401 
 ````
