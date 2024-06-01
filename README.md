@@ -1,3 +1,4 @@
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 # A Trading Model Utilizing a Dynamic Weighting and Aggregate Scoring System with LSTM Networks
 
@@ -261,7 +262,4 @@ Daily returns on two pairs over march 2024. The model is fairly strict and doesn
 Contributions to the project are welcome! If you find any issues or have suggestions for improvements, please open an
 issue or submit a pull request on the [GitHub repository](https://github.com/netanelshoshan/freqAI-LSTM).
 
-## License
-
-This project is licensed under the [MIT License](LICENSE).
 
