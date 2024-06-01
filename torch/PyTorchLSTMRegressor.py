@@ -13,18 +13,18 @@ class PyTorchLSTMRegressor(BasePyTorchRegressor):
     """
     PyTorchLSTMRegressor is a class that uses a PyTorch LSTM model to predict a continuous target variable.
 
-     "model_training_parameters": {
+      "model_training_parameters": {
       "learning_rate": 3e-3,
       "trainer_kwargs": {
         "n_steps": null,
         "batch_size": 32,
-        "n_epochs": 10
+        "n_epochs": 10,
       },
       "model_kwargs": {
+        "num_lstm_layers": 3,
         "hidden_dim": 128,
-        "dropout_percent": 0.4,
-        "n_layer": 3,
-        "window_size": 5
+        "window_size": 5,
+        "dropout_percent": 0.4
       }
     }
     """

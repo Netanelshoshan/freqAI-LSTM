@@ -20,11 +20,11 @@ class PyTorchLSTMModel(nn.Module):
         the complexity of the LSTM and determines how many nonlinear relationships the LSTM
         can represent. Increasing the number of hidden units can increase the capacity of
         the LSTM to model complex patterns, but it also increases the risk of overfitting
-        the training data. Default: 256
+        the training data. Default: 100
     :param dropout_percent: The dropout rate for regularization. This parameter specifies
         the probability of dropping out a neuron during training to prevent overfitting.
         The dropout rate should be tuned carefully to balance between underfitting and
-        overfitting. Default: 0.2
+        overfitting. Default: 0.3
     :param n_layer: The number of LSTM layers. This parameter specifies the number
         of LSTM layers in the model. Adding more layers can increase its capacity to
         model complex patterns, but it also increases the risk of overfitting
@@ -35,7 +35,7 @@ class PyTorchLSTMModel(nn.Module):
 
     def __init__(self, input_dim: int, output_dim: int, **kwargs):
         super().__init__()
-        self.num_lstm_layers: int = kwargs.get("num_lstm_layers", 3)
+        self.num_lstm_layers: int = kwargs.get("num_lstm_layers", 1)
         self.hidden_dim: int = kwargs.get("hidden_dim", 100)
         self.dropout_percent: float = kwargs.get("dropout_percent", 0.3)
 
@@ -47,10 +47,11 @@ class PyTorchLSTMModel(nn.Module):
         self.batch_norms.append(nn.BatchNorm1d(self.hidden_dim))
         self.dropouts.append(nn.Dropout(p=self.dropout_percent))
 
-        for _ in range(self.num_lstm_layers - 1):
-            self.lstm_layers.append(nn.LSTM(self.hidden_dim, self.hidden_dim, batch_first=True))
-            self.batch_norms.append(nn.BatchNorm1d(self.hidden_dim))
-            self.dropouts.append(nn.Dropout(p=self.dropout_percent))
+        if self.num_lstm_layers > 1:
+            for _ in range(self.num_lstm_layers - 1):
+                self.lstm_layers.append(nn.LSTM(self.hidden_dim, self.hidden_dim, batch_first=True))
+                self.batch_norms.append(nn.BatchNorm1d(self.hidden_dim))
+                self.dropouts.append(nn.Dropout(p=self.dropout_percent))
 
         self.fc1 = nn.Linear(self.hidden_dim, 36)
         self.alpha_dropout = nn.AlphaDropout(p=0.5)
