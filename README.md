@@ -54,6 +54,28 @@ pip install -e .
 freqtrade backtesting -c user_data/config-torch.json --breakdown day week month --timerange 20240301-20240401 
 ````
 
+## Quick Start with docker
+
+1. Clone the repository
+
+```shell
+git clone https://github.com/Netanelshoshan/freqAI-LSTM.git
+```
+2. Build local docker images
+
+```shell
+cd freqAI-LSTM
+docker build -f torch/Dockerfile  -t freqai .
+```
+3. Download data and Run the backtest
+```
+docker run -v ./data:/freqtrade/user_data/data  -it freqai  download-data -c user_data/config-torch.json --timerange 20230101-20240529 --timeframe 15m 30m 1h 2h 4h 8h 1d --erase
+
+docker run -v ./data:/freqtrade/user_data/data  -it freqai  backtesting -c user_data/config-torch.json --breakdown day week month --timerange 20240301-20240401 
+```
+
+
+
 
 ## Model Architecture
 
