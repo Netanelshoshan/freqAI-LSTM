@@ -21,7 +21,7 @@ class BasePyTorchModel(IFreqaiModel, ABC):
         self.dd.model_type = "pytorch"
         if torch.cuda.is_available():
             self.device = "cuda"
-        if torch.backends.mps.is_available():
+        elif torch.backends.mps.is_available():
             self.device = "mps"
         else:
             self.device = "cpu"
