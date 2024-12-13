@@ -131,7 +131,7 @@ class PyTorchModelTrainer(PyTorchTrainerInterface):
             data_loader = DataLoader(
                 dataset,
                 batch_size=self.batch_size,
-                shuffle=True,
+                shuffle=False,
                 drop_last=True,
                 num_workers=0,
             )
