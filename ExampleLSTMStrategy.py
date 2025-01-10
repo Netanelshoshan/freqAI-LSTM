@@ -1,6 +1,6 @@
 import logging
 from functools import reduce
-
+from typing import Dict
 import numpy as np
 import pandas as pd
 import talib.abstract as ta
