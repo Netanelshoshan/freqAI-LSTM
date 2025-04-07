@@ -1,6 +1,5 @@
 # syntax=docker/dockerfile:1
-# FROM freqtradeorg/freqtrade:develop_freqairl
-FROM freqtradeorg/freqtrade:develop_freqairl
+FROM freqtradeorg/freqtrade:stable_freqairl
 USER root
 
 RUN apt-get update \
